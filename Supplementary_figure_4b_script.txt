@@ -1,0 +1,106 @@
+### Manuscript: Aging imparts cell-autonomous dysfunction to regulatory T cells during recovery from influenza pneumonia
+### Supplementary Figure 4B (script)
+### Authors: Luisa Morales-Nebreda and Nikolay Markov
+
+#### P-value for Intersection of Multiple Circle Venn Diagram ###
+
+# Objectives: 
+	- Compare our RNAseq dataset of young and aged Tregs to previously published datasets describing pro-reparative IL10+ and IL18Ra+ Tregs from Arpaia et al. Cell. 2015 Aug 27; 162(5): 1078–1089.
+	- Create function to calculate p-value for three circle venn diagram
+
+# Intersections. Let the set names be A, B, C.
+
+# Params:
+#  N: total number of genes
+#  m1: intersection size of 3 sets (A & B & C)
+#  m2: intersection size of (A & B) - C
+#  m3: intersection size of (A & C) - B
+#  m4: intersection size of (B & C) - A
+#  a: number of genes in set A
+#  b: number of genes in set B
+#  c: number of genes in set C
+#  Z: number of iterations to simulate
+
+# Returns:
+#  a list of 4 p-values for m1, m2, m3 and m4 correspondingly
+#  corrected for multiple hypothesis testing by Bonferroni method
+
+test<-function(N,m1,m2,m3,m4,a,b,c,Z=10000){
+  #N=7000 # total number of genes for selection
+  #m=3 # number of overlaps in all three sets
+  #a=200 # number of up-regulated genes in sample A
+  #b=250 # number of up-regulated genes in sample B
+  #c=300 # number of up-regualted genes in sample C
+
+  nm1 = 0
+  nm2 = 0
+  nm3 = 0
+  nm4 = 0
+
+  for (i in 1:Z) {
+    A=sample(1:N,size=a,replace=FALSE)
+    B=sample(1:N,size=b,replace=FALSE)
+    C=sample(1:N,size=c,replace=FALSE)
+
+    b.and.c = intersect(B,C)
+    im1 = length(intersect(A, b.and.c))
+    im2 = length(intersect(A,B)) - im1
+    im3 = length(intersect(A,C)) - im1
+    im4 = length(b.and.c) - im1
+
+    if (im1 >= m1) {nm1 = nm1 + 1}
+    if (im2 >= m2) {nm2 = nm2 + 1}
+    if (im3 >= m3) {nm3 = nm3 + 1}
+    if (im4 >= m4) {nm4 = nm4 + 1}
+  }
+
+  p1 = nm1 / Z * 4
+  p2 = nm2 / Z * 4
+  p3 = nm3 / Z * 4
+  p4 = nm4 / Z * 4
+
+  return(c(p1,p2,p3,p4))
+}
+
+
+#### IL18 DATA  ###
+
+total_genes <- list(total_young = na.omit(topTags.fluVSnaive_young),
+                    total_aged = na.omit(topTags.fluVSnaive_old),
+                    total_IL18 = na.omit(topTags.DoubleNegVSIL18))
+
+
+total_genes_unique_18 <- unique(c(
+  as.character(total_genes$total_young$Probe),
+  as.character(total_genes$total_aged$Probe),
+  as.character(total_genes$total_IL18$Geneid)
+))
+
+# N=17513 # total number of genes for selection
+# a=1090 # number of up-regulated genes in sample A (Young Tregs)
+# b=336 # number of up-regulated genes in sample B (IL18R Tregs)
+# c=206 # number of up-regualted genes in sample C (Aged Tregs)
+
+test(N = 17513, m1 = 25, m2 = 80, m3 = 140, m4 = 5, a = 1090, b = 336, c = 206, Z=10000)
+
+
+
+#### IL10 DATA  ###
+
+total_genes <- list(total_young = na.omit(topTags.fluVSnaive_young),
+                    total_aged = na.omit(topTags.fluVSnaive_old),
+                    total_IL10 = na.omit(topTags.DoubleNegVSIL10))
+
+
+total_genes_unique_10 <- unique(c(
+  as.character(total_genes$total_young$Probe),
+  as.character(total_genes$total_aged$Probe),
+  as.character(total_genes$total_IL10$Geneid)
+))
+
+# N=17513 # total number of genes for selection
+# a=1090 # number of up-regulated genes in sample A (Young Tregs)
+# b=609 # number of up-regulated genes in sample B (IL10 Tregs)
+# c=206 # number of up-regualted genes in sample C (Aged Tregs)
+
+test(N = 17513, m1 = 53, m2 = 164, m3 = 112, m4 = 6, a = 1090, b = 609, c = 206, Z=10000)
